@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jogo das Mãos</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #e8e8e8;
+      color: #222;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 20px 0;
+    }
+    .screen { display: none; width: 100%; max-width: 700px; padding: 20px; text-align: center; }
+    .screen.active { display: block; }
+    h1 { font-size: 2.2em; margin-bottom: 8px; }
+    h2 { font-size: 1.3em; font-weight: 400; color: #666; margin-bottom: 30px; }
+    .section-label { font-size: 1em; color: #555; margin-bottom: 12px; text-align: center; }
+    .colors-grid { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-bottom: 30px; }
+    .color-circle {
+      width: 48px; height: 48px; border-radius: 50%; cursor: pointer;
+      border: 3px solid transparent; transition: all 0.2s; position: relative;
+    }
+    .color-circle:hover { transform: scale(1.15); }
+    .color-circle.selected { border-color: #333; transform: scale(1.15); }
+    .color-circle.selected::after {
+      content: '✓'; position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; font-weight: bold; color: #fff;
+      text-shadow: 0 0 4px rgba(0,0,0,0.8);
+    }
+    .config-row { display: flex; gap: 20px; justify-content: center; align-items: center; margin-bottom: 30px; flex-wrap: wrap; }
+    .config-item { text-align: center; }
+    .config-item label { display: block; font-size: 0.9em; color: #555; margin-bottom: 6px; }
+    .config-item input {
+      width: 80px; padding: 10px; text-align: center;
+      background: #fff; border: 2px solid #ccc; border-radius: 8px;
+      color: #222; font-size: 1.2em; outline: none;
+    }
+    .config-item input:focus { border-color: #e94560; }
+    .btn {
+      display: inline-block; padding: 14px 48px; border: none; border-radius: 12px;
+      font-size: 1.2em; font-weight: bold; cursor: pointer; transition: all 0.2s;
+    }
+    .btn:hover { transform: scale(1.05); }
+    .btn { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+    .btn-start { background: #e94560; color: #fff; }
+    .btn-menu { background: #fff; color: #e94560; border: 2px solid #e94560; }
+    .btn-again { background: #e94560; color: #fff; }
+    .error-msg { color: #e94560; font-size: 0.9em; margin-bottom: 10px; min-height: 1.2em; }
+
+    #game-screen { max-width: 100%; padding: 10px; }
+    .game-hud { display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; margin-bottom: 10px; }
+    .hud-item { font-size: 1.3em; font-weight: bold; }
+    .hud-challenge { color: #e94560; }
+    .hud-timer { color: #000; font-size: 1.6em; font-variant-numeric: tabular-nums; }
+    .timer-bar { height: 6px; background: #ccc; border-radius: 3px; margin: 0 20px 10px; overflow: hidden; }
+    .timer-fill { height: 100%; background: #e94560; border-radius: 3px; transition: width 0.3s linear; }
+
+    .hands-container {
+      display: flex; justify-content: center; align-items: center;
+      padding: 10px; cursor: pointer; user-select: none;
+    }
+    .hands-container svg { max-height: 62vh; width: auto; }
+    .hands-container:active svg { transform: scale(0.98); }
+
+    .color-labels { display: flex; justify-content: space-around; margin-top: 12px; padding: 0 40px; }
+    .color-label {
+      padding: 8px 24px; border-radius: 20px; font-size: 1.1em; font-weight: bold;
+      color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+    }
+    .click-hint { font-size: 0.85em; color: #999; margin-top: 8px; }
+
+    #end-screen h1 { font-size: 3em; margin-bottom: 20px; }
+    .end-buttons { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin-top: 30px; }
+
+    .fade-in { animation: fadeIn 0.4s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+    .pulse { animation: pulse 0.4s ease; }
+    @keyframes pulse { 0% { transform: scale(1); } 30% { transform: scale(1.03); } 100% { transform: scale(1); } }
+
+    .preview-hands { margin-bottom: 10px; }
+    .preview-hands svg { max-height: 28vh; width: auto; }
+  </style>
+</head>
+<body>
+
+  <div id="config-screen" class="screen active">
+    <div class="preview-hands" id="previewHands">
+      <svg viewBox="0 0 600 409" xmlns="http://www.w3.org/2000/svg">
+                <g transform="translate(0,409) scale(0.1,-0.1)">
+          <g>
+            <path id="previewLeft" fill="#EF4444" d="M1745 3483 c-66 -34 -102 -85 -123 -173 -6 -25 -21 -151 -32 -280 -12 -129 -25 -266 -29 -305 -9 -82 -6 -92 -51 188 -46 282 -82 375 -170 433 -75 50 -198 28 -248 -43 -57 -82 -55 -143 22 -459 31 -126 56 -234 56 -238 0 -4 -41 75 -91 175 -127 253 -179 302 -300 286 -80 -11 -139 -83 -139 -171 0 -63 28 -127 159 -361 61 -110 120 -228 131 -263 13 -42 23 -118 30 -234 21 -357 82 -568 193 -677 34 -33 34 -36 29 -97 -2 -34 -2 -78 2 -98 26 -136 291 -232 565 -206 224 21 364 107 378 233 5 41 8 45 61 72 76 40 167 127 243 233 101 139 145 186 249 266 147 113 167 143 157 232 -3 34 -13 55 -38 80 -43 44 -88 57 -180 53 -97 -5 -169 -40 -260 -127 -38 -36 -71 -63 -74 -60 -18 18 -37 147 -38 253 0 142 6 168 103 410 135 338 168 466 140 549 -14 45 -53 92 -91 111 -35 19 -109 19 -152 2 -45 -19 -105 -89 -138 -162 -27 -59 -100 -276 -134 -398 -9 -32 -18 -57 -20 -55 -2 2 13 113 31 248 40 284 45 415 20 475 -21 50 -61 93 -103 111 -43 18 -121 17 -158 -3z"/>
+            <path fill="#000" d="M1745 3483 c-66 -34 -102 -85 -123 -173 -6 -25 -21 -151 -32 -280 -12 -129 -25 -266 -29 -305 -9 -82 -6 -92 -51 188 -46 282 -82 375 -170 433 -75 50 -198 28 -248 -43 -57 -82 -55 -143 22 -459 31 -126 56 -234 56 -238 0 -4 -41 75 -91 175 -127 253 -179 302 -300 286 -80 -11 -139 -83 -139 -171 0 -63 28 -127 159 -361 61 -110 120 -228 131 -263 13 -42 23 -118 30 -234 21 -357 82 -568 193 -677 34 -33 34 -36 29 -97 -2 -34 -2 -78 2 -98 26 -136 291 -232 565 -206 224 21 364 107 378 233 5 41 8 45 61 72 76 40 167 127 243 233 101 139 145 186 249 266 147 113 167 143 157 232 -3 34 -13 55 -38 80 -43 44 -88 57 -180 53 -97 -5 -169 -40 -260 -127 -38 -36 -71 -63 -74 -60 -18 18 -37 147 -38 253 0 142 6 168 103 410 135 338 168 466 140 549 -14 45 -53 92 -91 111 -35 19 -109 19 -152 2 -45 -19 -105 -89 -138 -162 -27 -59 -100 -276 -134 -398 -9 -32 -18 -57 -20 -55 -2 2 13 113 31 248 40 284 45 415 20 475 -21 50 -61 93 -103 111 -43 18 -121 17 -158 -3z m141 -59 c22 -11 41 -31 56 -62 32 -65 29 -145 -16 -467 -20 -143 -39 -308 -43 -366 l-6 -106 -56 13 c-31 8 -98 14 -149 14 -51 0 -91 4 -88 9 9 14 35 235 61 530 15 159 33 304 41 330 35 102 115 145 200 105z m-566 -140 c69 -59 93 -137 150 -491 22 -136 44 -266 50 -288 15 -61 15 -61 -55 -74 -36 -6 -95 -22 -130 -35 l-65 -23 -4 31 c-21 136 -45 255 -96 466 -63 256 -69 309 -46 364 32 78 132 103 196 50z m1055 -80 c20 -9 40 -30 50 -51 35 -72 5 -187 -137 -543 -99 -247 -101 -255 -95 -445 3 -88 8 -171 12 -184 8 -22 7 -23 -26 -15 -64 17 -199 9 -259 -15 -69 -27 -145 -82 -170 -124 -41 -67 -14 -78 44 -18 53 54 158 101 243 108 85 7 174 -11 212 -43 16 -13 35 -24 43 -24 8 0 31 23 52 51 80 104 174 160 281 166 84 5 132 -15 151 -62 22 -55 0 -92 -98 -165 -123 -92 -176 -146 -288 -297 -104 -139 -157 -187 -267 -242 -74 -38 -198 -71 -265 -71 -52 0 -69 -22 -25 -34 35 -9 159 -7 196 4 40 11 45 9 36 -19 -20 -63 -105 -120 -222 -147 -100 -23 -334 -15 -423 16 -81 27 -143 66 -164 101 -9 15 -16 49 -16 79 0 45 2 52 18 47 83 -28 133 -39 146 -34 25 10 19 25 -13 32 -39 8 -138 68 -179 108 -112 108 -171 311 -192 653 -6 98 -18 203 -26 233 -18 63 -90 210 -176 360 -131 227 -145 286 -84 347 28 28 42 34 75 34 35 0 49 -7 86 -41 37 -35 64 -80 151 -258 58 -119 120 -244 137 -279 17 -35 35 -66 40 -69 5 -3 -10 -22 -34 -42 -66 -58 -43 -67 54 -21 142 69 217 84 412 84 162 1 174 -1 245 -27 41 -16 85 -31 98 -34 36 -9 27 22 -15 49 -20 13 -40 26 -45 29 -5 3 2 30 16 60 13 31 54 153 90 272 99 325 152 438 217 470 43 21 72 21 114 1z"/>
+            <path fill="#000" d="M1238 1910 c-44 -8 -94 -39 -82 -50 5 -4 31 -5 57 -1 95 15 189 -15 268 -86 46 -42 66 -35 42 14 -38 80 -183 143 -285 123z"/>
+          </g>
+          <g>
+            <path id="previewRight" fill="#3B82F6" d="M4148 3480 c-48 -26 -82 -72 -102 -139 -21 -73 -21 -94 14 -401 33 -296 35 -327 14 -255 -46 155 -116 368 -138 415 -54 123 -122 180 -211 180 -85 0 -154 -53 -176 -134 -23 -85 7 -195 152 -563 88 -223 106 -311 94 -448 -6 -67 -30 -184 -40 -194 -3 -2 -26 18 -52 45 -98 102 -185 144 -296 144 -131 0 -202 -55 -202 -158 0 -75 20 -103 143 -196 115 -87 151 -125 264 -277 90 -122 149 -179 239 -231 53 -31 57 -36 63 -78 17 -124 154 -209 371 -229 165 -16 313 6 431 63 116 56 144 100 144 222 0 74 0 75 47 132 107 131 152 300 178 661 16 233 20 247 149 471 42 74 98 178 124 230 42 84 47 102 47 162 0 52 -5 73 -21 94 -75 101 -212 97 -296 -9 -18 -22 -73 -117 -121 -211 -48 -94 -85 -157 -82 -141 3 17 31 127 62 245 67 259 73 329 31 400 -60 104 -194 127 -284 48 -76 -67 -115 -177 -165 -468 -40 -233 -40 -232 -63 130 -23 346 -33 393 -94 456 -56 56 -154 71 -224 34z"/>
+            <path fill="#000" d="M4148 3480 c-48 -26 -82 -72 -102 -139 -21 -73 -21 -94 14 -401 33 -296 35 -327 14 -255 -46 155 -116 368 -138 415 -54 123 -122 180 -211 180 -85 0 -154 -53 -176 -134 -23 -85 7 -195 152 -563 88 -223 106 -311 94 -448 -6 -67 -30 -184 -40 -194 -3 -2 -26 18 -52 45 -98 102 -185 144 -296 144 -131 0 -202 -55 -202 -158 0 -75 20 -103 143 -196 115 -87 151 -125 264 -277 90 -122 149 -179 239 -231 53 -31 57 -36 63 -78 17 -124 154 -209 371 -229 165 -16 313 6 431 63 116 56 144 100 144 222 0 74 0 75 47 132 107 131 152 300 178 661 16 233 20 247 149 471 42 74 98 178 124 230 42 84 47 102 47 162 0 52 -5 73 -21 94 -75 101 -212 97 -296 -9 -18 -22 -73 -117 -121 -211 -48 -94 -85 -157 -82 -141 3 17 31 127 62 245 67 259 73 329 31 400 -60 104 -194 127 -284 48 -76 -67 -115 -177 -165 -468 -40 -233 -40 -232 -63 130 -23 346 -33 393 -94 456 -56 56 -154 71 -224 34z m159 -60 c61 -37 78 -94 93 -325 13 -212 40 -543 45 -570 2 -11 6 -32 10 -47 l5 -28 -92 0 c-51 0 -118 -6 -149 -14 l-56 -13 -6 121 c-4 67 -20 243 -38 391 -32 278 -33 370 -5 422 15 31 52 67 76 76 32 12 87 6 117 -13z m572 -124 c86 -45 86 -118 1 -435 -70 -263 -100 -398 -100 -455 0 -32 -3 -37 -17 -31 -49 20 -171 57 -210 62 -24 3 -43 10 -43 15 0 6 7 36 15 67 8 31 33 160 55 286 23 127 46 250 52 275 12 49 59 156 80 180 42 50 111 64 167 36z m-1101 -90 c76 -39 116 -129 228 -501 31 -104 67 -214 80 -244 14 -30 23 -55 22 -55 -33 -17 -88 -62 -88 -72 0 -19 17 -17 67 5 86 39 186 54 332 48 158 -6 249 -27 376 -86 99 -46 122 -38 56 20 -24 20 -39 38 -33 40 5 2 68 121 140 264 72 143 144 279 161 303 64 88 139 106 197 48 62 -62 50 -109 -84 -343 -90 -156 -158 -288 -179 -348 -8 -22 -20 -130 -28 -245 -19 -274 -50 -423 -112 -543 -46 -86 -125 -160 -222 -205 -55 -25 -70 -37 -62 -45 11 -11 93 4 154 28 15 6 17 1 17 -46 0 -36 -7 -65 -19 -86 -25 -39 -121 -88 -216 -108 -91 -19 -291 -19 -373 0 -112 27 -198 84 -217 146 -9 29 -3 32 42 20 41 -12 171 -15 197 -5 32 12 17 34 -23 34 -127 0 -308 73 -407 162 -31 29 -94 102 -139 163 -97 129 -160 193 -272 278 -88 67 -113 99 -113 145 0 33 43 77 86 88 44 11 138 -1 187 -25 54 -26 142 -103 178 -155 27 -40 53 -45 77 -17 23 26 112 51 184 51 98 0 215 -49 290 -121 17 -16 35 -29 39 -29 21 0 6 41 -30 81 -90 102 -259 152 -398 116 l-51 -13 9 30 c21 72 30 216 19 311 -9 84 -22 127 -105 341 -102 263 -145 396 -145 451 0 95 98 161 178 119z"/>
+            <path fill="#000" d="M4703 1910 c-80 -16 -156 -68 -187 -128 -24 -46 -2 -50 46 -7 22 21 65 48 95 62 46 21 66 24 138 22 47 -2 85 0 85 4 0 4 0 11 0 16 0 22 -116 42 -177 31z"/>
+          </g>
+        </g>
+      </svg>
+    </div>
+    <h1>Jogo das Mãos</h1>
+    <h2>Configure e comece!</h2>
+    <p class="section-label">Selecione as cores (mínimo 2):</p>
+    <div class="colors-grid" id="colorsGrid"></div>
+    <div class="config-row">
+      <div class="config-item">
+        <label>Desafios</label>
+        <input type="number" id="inputChallenges" value="5" min="1" max="50">
+      </div>
+      <div class="config-item">
+        <label>Segundos</label>
+        <input type="number" id="inputTime" value="5" min="1" max="120">
+      </div>
+    </div>
+    <div class="error-msg" id="errorMsg"></div>
+    <button class="btn btn-start" id="btnStart">Começar</button>
+  </div>
+
+  <div id="game-screen" class="screen">
+    <div class="game-hud">
+      <span class="hud-item hud-challenge" id="hudChallenge">1/5</span>
+      <span class="hud-item hud-timer" id="hudTimer">10</span>
+    </div>
+    <div class="timer-bar"><div class="timer-fill" id="timerFill"></div></div>
+    <div class="hands-container" id="handsContainer">
+      <svg viewBox="0 0 600 409" xmlns="http://www.w3.org/2000/svg">
+                <g transform="translate(0,409) scale(0.1,-0.1)">
+          <g>
+            <path id="leftFill" fill="#222" d="M1745 3483 c-66 -34 -102 -85 -123 -173 -6 -25 -21 -151 -32 -280 -12 -129 -25 -266 -29 -305 -9 -82 -6 -92 -51 188 -46 282 -82 375 -170 433 -75 50 -198 28 -248 -43 -57 -82 -55 -143 22 -459 31 -126 56 -234 56 -238 0 -4 -41 75 -91 175 -127 253 -179 302 -300 286 -80 -11 -139 -83 -139 -171 0 -63 28 -127 159 -361 61 -110 120 -228 131 -263 13 -42 23 -118 30 -234 21 -357 82 -568 193 -677 34 -33 34 -36 29 -97 -2 -34 -2 -78 2 -98 26 -136 291 -232 565 -206 224 21 364 107 378 233 5 41 8 45 61 72 76 40 167 127 243 233 101 139 145 186 249 266 147 113 167 143 157 232 -3 34 -13 55 -38 80 -43 44 -88 57 -180 53 -97 -5 -169 -40 -260 -127 -38 -36 -71 -63 -74 -60 -18 18 -37 147 -38 253 0 142 6 168 103 410 135 338 168 466 140 549 -14 45 -53 92 -91 111 -35 19 -109 19 -152 2 -45 -19 -105 -89 -138 -162 -27 -59 -100 -276 -134 -398 -9 -32 -18 -57 -20 -55 -2 2 13 113 31 248 40 284 45 415 20 475 -21 50 -61 93 -103 111 -43 18 -121 17 -158 -3z"/>
+            <path fill="#000" d="M1745 3483 c-66 -34 -102 -85 -123 -173 -6 -25 -21 -151 -32 -280 -12 -129 -25 -266 -29 -305 -9 -82 -6 -92 -51 188 -46 282 -82 375 -170 433 -75 50 -198 28 -248 -43 -57 -82 -55 -143 22 -459 31 -126 56 -234 56 -238 0 -4 -41 75 -91 175 -127 253 -179 302 -300 286 -80 -11 -139 -83 -139 -171 0 -63 28 -127 159 -361 61 -110 120 -228 131 -263 13 -42 23 -118 30 -234 21 -357 82 -568 193 -677 34 -33 34 -36 29 -97 -2 -34 -2 -78 2 -98 26 -136 291 -232 565 -206 224 21 364 107 378 233 5 41 8 45 61 72 76 40 167 127 243 233 101 139 145 186 249 266 147 113 167 143 157 232 -3 34 -13 55 -38 80 -43 44 -88 57 -180 53 -97 -5 -169 -40 -260 -127 -38 -36 -71 -63 -74 -60 -18 18 -37 147 -38 253 0 142 6 168 103 410 135 338 168 466 140 549 -14 45 -53 92 -91 111 -35 19 -109 19 -152 2 -45 -19 -105 -89 -138 -162 -27 -59 -100 -276 -134 -398 -9 -32 -18 -57 -20 -55 -2 2 13 113 31 248 40 284 45 415 20 475 -21 50 -61 93 -103 111 -43 18 -121 17 -158 -3z m141 -59 c22 -11 41 -31 56 -62 32 -65 29 -145 -16 -467 -20 -143 -39 -308 -43 -366 l-6 -106 -56 13 c-31 8 -98 14 -149 14 -51 0 -91 4 -88 9 9 14 35 235 61 530 15 159 33 304 41 330 35 102 115 145 200 105z m-566 -140 c69 -59 93 -137 150 -491 22 -136 44 -266 50 -288 15 -61 15 -61 -55 -74 -36 -6 -95 -22 -130 -35 l-65 -23 -4 31 c-21 136 -45 255 -96 466 -63 256 -69 309 -46 364 32 78 132 103 196 50z m1055 -80 c20 -9 40 -30 50 -51 35 -72 5 -187 -137 -543 -99 -247 -101 -255 -95 -445 3 -88 8 -171 12 -184 8 -22 7 -23 -26 -15 -64 17 -199 9 -259 -15 -69 -27 -145 -82 -170 -124 -41 -67 -14 -78 44 -18 53 54 158 101 243 108 85 7 174 -11 212 -43 16 -13 35 -24 43 -24 8 0 31 23 52 51 80 104 174 160 281 166 84 5 132 -15 151 -62 22 -55 0 -92 -98 -165 -123 -92 -176 -146 -288 -297 -104 -139 -157 -187 -267 -242 -74 -38 -198 -71 -265 -71 -52 0 -69 -22 -25 -34 35 -9 159 -7 196 4 40 11 45 9 36 -19 -20 -63 -105 -120 -222 -147 -100 -23 -334 -15 -423 16 -81 27 -143 66 -164 101 -9 15 -16 49 -16 79 0 45 2 52 18 47 83 -28 133 -39 146 -34 25 10 19 25 -13 32 -39 8 -138 68 -179 108 -112 108 -171 311 -192 653 -6 98 -18 203 -26 233 -18 63 -90 210 -176 360 -131 227 -145 286 -84 347 28 28 42 34 75 34 35 0 49 -7 86 -41 37 -35 64 -80 151 -258 58 -119 120 -244 137 -279 17 -35 35 -66 40 -69 5 -3 -10 -22 -34 -42 -66 -58 -43 -67 54 -21 142 69 217 84 412 84 162 1 174 -1 245 -27 41 -16 85 -31 98 -34 36 -9 27 22 -15 49 -20 13 -40 26 -45 29 -5 3 2 30 16 60 13 31 54 153 90 272 99 325 152 438 217 470 43 21 72 21 114 1z"/>
+            <path fill="#000" d="M1238 1910 c-44 -8 -94 -39 -82 -50 5 -4 31 -5 57 -1 95 15 189 -15 268 -86 46 -42 66 -35 42 14 -38 80 -183 143 -285 123z"/>
+          </g>
+          <g>
+            <path id="rightFill" fill="#222" d="M4148 3480 c-48 -26 -82 -72 -102 -139 -21 -73 -21 -94 14 -401 33 -296 35 -327 14 -255 -46 155 -116 368 -138 415 -54 123 -122 180 -211 180 -85 0 -154 -53 -176 -134 -23 -85 7 -195 152 -563 88 -223 106 -311 94 -448 -6 -67 -30 -184 -40 -194 -3 -2 -26 18 -52 45 -98 102 -185 144 -296 144 -131 0 -202 -55 -202 -158 0 -75 20 -103 143 -196 115 -87 151 -125 264 -277 90 -122 149 -179 239 -231 53 -31 57 -36 63 -78 17 -124 154 -209 371 -229 165 -16 313 6 431 63 116 56 144 100 144 222 0 74 0 75 47 132 107 131 152 300 178 661 16 233 20 247 149 471 42 74 98 178 124 230 42 84 47 102 47 162 0 52 -5 73 -21 94 -75 101 -212 97 -296 -9 -18 -22 -73 -117 -121 -211 -48 -94 -85 -157 -82 -141 3 17 31 127 62 245 67 259 73 329 31 400 -60 104 -194 127 -284 48 -76 -67 -115 -177 -165 -468 -40 -233 -40 -232 -63 130 -23 346 -33 393 -94 456 -56 56 -154 71 -224 34z"/>
+            <path fill="#000" d="M4148 3480 c-48 -26 -82 -72 -102 -139 -21 -73 -21 -94 14 -401 33 -296 35 -327 14 -255 -46 155 -116 368 -138 415 -54 123 -122 180 -211 180 -85 0 -154 -53 -176 -134 -23 -85 7 -195 152 -563 88 -223 106 -311 94 -448 -6 -67 -30 -184 -40 -194 -3 -2 -26 18 -52 45 -98 102 -185 144 -296 144 -131 0 -202 -55 -202 -158 0 -75 20 -103 143 -196 115 -87 151 -125 264 -277 90 -122 149 -179 239 -231 53 -31 57 -36 63 -78 17 -124 154 -209 371 -229 165 -16 313 6 431 63 116 56 144 100 144 222 0 74 0 75 47 132 107 131 152 300 178 661 16 233 20 247 149 471 42 74 98 178 124 230 42 84 47 102 47 162 0 52 -5 73 -21 94 -75 101 -212 97 -296 -9 -18 -22 -73 -117 -121 -211 -48 -94 -85 -157 -82 -141 3 17 31 127 62 245 67 259 73 329 31 400 -60 104 -194 127 -284 48 -76 -67 -115 -177 -165 -468 -40 -233 -40 -232 -63 130 -23 346 -33 393 -94 456 -56 56 -154 71 -224 34z m159 -60 c61 -37 78 -94 93 -325 13 -212 40 -543 45 -570 2 -11 6 -32 10 -47 l5 -28 -92 0 c-51 0 -118 -6 -149 -14 l-56 -13 -6 121 c-4 67 -20 243 -38 391 -32 278 -33 370 -5 422 15 31 52 67 76 76 32 12 87 6 117 -13z m572 -124 c86 -45 86 -118 1 -435 -70 -263 -100 -398 -100 -455 0 -32 -3 -37 -17 -31 -49 20 -171 57 -210 62 -24 3 -43 10 -43 15 0 6 7 36 15 67 8 31 33 160 55 286 23 127 46 250 52 275 12 49 59 156 80 180 42 50 111 64 167 36z m-1101 -90 c76 -39 116 -129 228 -501 31 -104 67 -214 80 -244 14 -30 23 -55 22 -55 -33 -17 -88 -62 -88 -72 0 -19 17 -17 67 5 86 39 186 54 332 48 158 -6 249 -27 376 -86 99 -46 122 -38 56 20 -24 20 -39 38 -33 40 5 2 68 121 140 264 72 143 144 279 161 303 64 88 139 106 197 48 62 -62 50 -109 -84 -343 -90 -156 -158 -288 -179 -348 -8 -22 -20 -130 -28 -245 -19 -274 -50 -423 -112 -543 -46 -86 -125 -160 -222 -205 -55 -25 -70 -37 -62 -45 11 -11 93 4 154 28 15 6 17 1 17 -46 0 -36 -7 -65 -19 -86 -25 -39 -121 -88 -216 -108 -91 -19 -291 -19 -373 0 -112 27 -198 84 -217 146 -9 29 -3 32 42 20 41 -12 171 -15 197 -5 32 12 17 34 -23 34 -127 0 -308 73 -407 162 -31 29 -94 102 -139 163 -97 129 -160 193 -272 278 -88 67 -113 99 -113 145 0 33 43 77 86 88 44 11 138 -1 187 -25 54 -26 142 -103 178 -155 27 -40 53 -45 77 -17 23 26 112 51 184 51 98 0 215 -49 290 -121 17 -16 35 -29 39 -29 21 0 6 41 -30 81 -90 102 -259 152 -398 116 l-51 -13 9 30 c21 72 30 216 19 311 -9 84 -22 127 -105 341 -102 263 -145 396 -145 451 0 95 98 161 178 119z"/>
+            <path fill="#000" d="M4703 1910 c-80 -16 -156 -68 -187 -128 -24 -46 -2 -50 46 -7 22 21 65 48 95 62 46 21 66 24 138 22 47 -2 85 0 85 4 0 4 0 11 0 16 0 22 -116 42 -177 31z"/>
+          </g>
+        </g>
+      </svg>
+    </div>
+    <div class="color-labels">
+      <span class="color-label" id="labelLeft">Esquerda</span>
+      <span class="color-label" id="labelRight">Direita</span>
+    </div>
+    <p class="click-hint">Clique nas mãos para trocar imediatamente</p>
+  </div>
+
+  <div id="end-screen" class="screen">
+    <h1>Fim!</h1>
+    <h2>Todos os desafios completos</h2>
+    <div class="end-buttons">
+      <button class="btn btn-menu" id="btnMenu">Ir para o menu</button>
+      <button class="btn btn-again" id="btnAgain">Jogar denovo</button>
+    </div>
+  </div>
+
+  <script>
+    const COLORS = [
+      { hex: '#EF4444', name: 'Vermelho' },
+      { hex: '#3B82F6', name: 'Azul' },
+      { hex: '#22C55E', name: 'Verde' },
+      { hex: '#EAB308', name: 'Amarelo' },
+      { hex: '#F97316', name: 'Laranja' },
+      { hex: '#A855F7', name: 'Roxo' },
+      { hex: '#EC4899', name: 'Rosa' },
+      { hex: '#06B6D4', name: 'Ciano' },
+      { hex: '#84CC16', name: 'Lima' },
+      { hex: '#F43F5E', name: 'Magenta' },
+    ];
+
+    let selectedColors = new Set([0, 1, 2, 3, 4]);
+    let totalChallenges = 5;
+    let changeTime = 5;
+    let currentChallenge = 0;
+    let timerId = null;
+    let countdownId = null;
+    let gameActive = false;
+
+    const grid = document.getElementById('colorsGrid');
+    COLORS.forEach((c, i) => {
+      const div = document.createElement('div');
+      div.className = 'color-circle' + (selectedColors.has(i) ? ' selected' : '');
+      div.style.background = c.hex;
+      div.title = c.name;
+      div.addEventListener('click', () => {
+        if (selectedColors.has(i)) selectedColors.delete(i);
+        else selectedColors.add(i);
+        div.classList.toggle('selected');
+        document.getElementById('errorMsg').textContent = '';
+      });
+      grid.appendChild(div);
+    });
+
+    function showScreen(id) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      const el = document.getElementById(id);
+      el.classList.add('active', 'fade-in');
+      el.addEventListener('animationend', () => el.classList.remove('fade-in'), { once: true });
+      window.scrollTo(0, 0);
+    }
+
+    function pickTwoColors() {
+      const indices = [...selectedColors];
+      const i1 = indices[Math.floor(Math.random() * indices.length)];
+      let i2;
+      do { i2 = indices[Math.floor(Math.random() * indices.length)]; } while (i2 === i1);
+      return [COLORS[i1], COLORS[i2]];
+    }
+
+    function randomTwoFromAll() {
+      const i1 = Math.floor(Math.random() * COLORS.length);
+      let i2;
+      do { i2 = Math.floor(Math.random() * COLORS.length); } while (i2 === i1);
+      return [COLORS[i1], COLORS[i2]];
+    }
+
+    function colorHands(leftHex, rightHex) {
+      document.getElementById('leftFill').setAttribute('fill', leftHex);
+      document.getElementById('rightFill').setAttribute('fill', rightHex);
+    }
+
+    function startGame() {
+      totalChallenges = parseInt(document.getElementById('inputChallenges').value) || 5;
+      changeTime = parseInt(document.getElementById('inputTime').value) || 10;
+      currentChallenge = 0;
+      gameActive = true;
+      stopPreview();
+      showScreen('game-screen');
+      nextChallenge();
+    }
+
+    function nextChallenge() {
+      clearTimeout(timerId);
+      clearInterval(countdownId);
+
+      currentChallenge++;
+      if (currentChallenge > totalChallenges) {
+        gameActive = false;
+        showScreen('end-screen');
+        return;
+      }
+
+      const [c1, c2] = pickTwoColors();
+      colorHands(c1.hex, c2.hex);
+
+      const container = document.getElementById('handsContainer');
+      container.classList.remove('pulse');
+      void container.offsetWidth;
+      container.classList.add('pulse');
+
+      document.getElementById('labelLeft').textContent = c1.name;
+      document.getElementById('labelLeft').style.background = c1.hex;
+      document.getElementById('labelRight').textContent = c2.name;
+      document.getElementById('labelRight').style.background = c2.hex;
+      document.getElementById('hudChallenge').textContent = currentChallenge + '/' + totalChallenges;
+
+      document.getElementById('hudTimer').textContent = changeTime;
+      document.getElementById('timerFill').style.width = '100%';
+
+      const startMs = Date.now();
+      const totalMs = changeTime * 1000;
+
+      countdownId = setInterval(() => {
+        const elapsed = Date.now() - startMs;
+        const left = Math.max(0, Math.ceil((totalMs - elapsed) / 1000));
+        document.getElementById('hudTimer').textContent = left;
+        document.getElementById('timerFill').style.width = Math.max(0, ((totalMs - elapsed) / totalMs) * 100) + '%';
+      }, 100);
+
+      timerId = setTimeout(() => {
+        clearInterval(countdownId);
+        document.getElementById('hudTimer').textContent = '0';
+        document.getElementById('timerFill').style.width = '0%';
+        nextChallenge();
+      }, totalMs);
+    }
+
+    document.getElementById('handsContainer').addEventListener('click', () => {
+      if (gameActive) nextChallenge();
+    });
+
+    document.getElementById('btnStart').addEventListener('click', () => {
+      if (selectedColors.size < 2) {
+        document.getElementById('errorMsg').textContent = 'Selecione pelo menos 2 cores!';
+        return;
+      }
+      startGame();
+    });
+
+    document.getElementById('btnMenu').addEventListener('click', () => {
+      gameActive = false;
+      clearTimeout(timerId);
+      clearInterval(countdownId);
+      showScreen('config-screen');
+      startPreview();
+    });
+
+    document.getElementById('btnAgain').addEventListener('click', () => {
+      startGame();
+    });
+
+    // Preview animation
+    let previewInterval = null;
+    function startPreview() {
+      function tick() {
+        const [c1, c2] = randomTwoFromAll();
+        document.getElementById('previewLeft').setAttribute('fill', c1.hex);
+        document.getElementById('previewRight').setAttribute('fill', c2.hex);
+      }
+      tick();
+      previewInterval = setInterval(tick, 1200);
+    }
+    function stopPreview() { clearInterval(previewInterval); }
+    startPreview();
+  </script>
+</body>
+</html>
