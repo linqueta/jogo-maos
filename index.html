@@ -65,9 +65,12 @@
     .hands-container {
       display: flex; justify-content: center; align-items: center;
       padding: 10px; cursor: pointer; user-select: none;
+      flex: 1; min-height: 200px;
     }
-    .hands-container svg { max-height: 62vh; width: auto; }
+    .hands-container svg { max-height: 62vh; width: 100%; height: auto; }
     .hands-container:active svg { transform: scale(0.98); }
+    #game-screen { display: none; flex-direction: column; min-height: 80vh; }
+    #game-screen.active { display: flex; }
 
     .color-labels { display: flex; justify-content: space-around; margin-top: 12px; padding: 0 40px; }
     .color-label {
@@ -85,7 +88,7 @@
     @keyframes pulse { 0% { transform: scale(1); } 30% { transform: scale(1.03); } 100% { transform: scale(1); } }
 
     .preview-hands { margin-bottom: 10px; }
-    .preview-hands svg { max-height: 28vh; width: auto; }
+    .preview-hands svg { max-height: 28vh; width: 100%; height: auto; }
   </style>
 </head>
 <body>
@@ -151,7 +154,7 @@
       <span class="color-label" id="labelLeft">Esquerda</span>
       <span class="color-label" id="labelRight">Direita</span>
     </div>
-    <p class="click-hint">Clique nas mãos para trocar imediatamente</p>
+    <p class="click-hint">Toque na tela para trocar imediatamente</p>
   </div>
 
   <div id="end-screen" class="screen">
@@ -284,7 +287,7 @@
       }, totalMs);
     }
 
-    document.getElementById('handsContainer').addEventListener('click', () => {
+    document.getElementById('game-screen').addEventListener('click', () => {
       if (gameActive) nextChallenge();
     });
 
